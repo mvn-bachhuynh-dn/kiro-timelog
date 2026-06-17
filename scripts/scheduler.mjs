@@ -25,7 +25,7 @@ function getNodePath() {
 // ─── macOS: launchd ──────────────────────
 
 function launchdPlistPath() {
-  return join(homedir(), 'Library', 'LaunchAgents', 'com.kiro-timelog.scan.plist');
+  return join(homedir(), 'Library', 'LaunchAgents', 'com.ailog.scan.plist');
 }
 
 function installLaunchd() {
@@ -38,7 +38,7 @@ function installLaunchd() {
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.kiro-timelog.scan</string>
+  <string>com.ailog.scan</string>
   <key>ProgramArguments</key>
   <array>
     <string>${node}</string>
@@ -79,7 +79,7 @@ function uninstallLaunchd() {
 
 // ─── Linux: cron ─────────────────────────
 
-const CRON_MARKER = '# kiro-timelog auto-scan';
+const CRON_MARKER = '# ailog auto-scan';
 
 function installCron() {
   const node = getNodePath();
@@ -128,7 +128,7 @@ if (action === 'install') {
     const plist = launchdPlistPath();
     if (existsSync(plist)) {
       try {
-        const out = execSync('launchctl list | grep kiro-timelog', { encoding: 'utf8' });
+        const out = execSync('launchctl list | grep ailog', { encoding: 'utf8' });
         console.log(`Active: ${out.trim()}`);
       } catch { console.log('Installed but not running'); }
     } else { console.log('Not installed'); }

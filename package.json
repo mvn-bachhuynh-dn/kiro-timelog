@@ -1,10 +1,10 @@
 {
-  "name": "kiro-timelog",
-  "version": "1.0.1",
-  "description": "Automatic time tracking for Kiro CLI sessions. Scans session data and generates reports for freelance billing.",
+  "name": "@steveh204/ailog",
+  "version": "1.0.0",
+  "description": "Automatic time tracking for AI coding assistants (Kiro CLI + Claude Code). Reports for freelance billing.",
   "type": "module",
   "bin": {
-    "kirolog": "bin/kirolog"
+    "ailog": "bin/kirolog"
   },
   "scripts": {
     "test": "node --test test/test.mjs",
@@ -13,30 +13,16 @@
     "install-scheduler": "node scripts/scheduler.mjs install",
     "uninstall-scheduler": "node scripts/scheduler.mjs uninstall"
   },
-  "keywords": [
-    "kiro",
-    "time-tracking",
-    "cli",
-    "freelance",
-    "billing",
-    "timelog"
-  ],
+  "keywords": ["kiro", "claude", "ai", "time-tracking", "cli", "freelance", "billing"],
   "author": "Bach Huynh",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mvn-bachhuynh-dn/kiro-timelog.git"
+    "url": "https://github.com/mvn-bachhuynh-dn/kiro-timelog.git"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "os": [
-    "darwin",
-    "linux"
-  ],
-  "files": [
-    "bin/",
-    "lib/",
-    "scripts/"
-  ]
+  "os": ["darwin", "linux"],
+  "files": ["bin/", "lib/", "scripts/"]
 }
