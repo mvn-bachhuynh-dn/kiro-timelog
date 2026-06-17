@@ -1,0 +1,28 @@
+{
+  "name": "kiro-timelog",
+  "version": "1.0.0",
+  "description": "Automatic time tracking for Kiro CLI sessions. Scans session data and generates reports for freelance billing.",
+  "type": "module",
+  "bin": {
+    "kirolog": "./bin/kirolog"
+  },
+  "scripts": {
+    "test": "node --test test/test.mjs",
+    "scan": "node scripts/scan.mjs",
+    "report": "node scripts/report.mjs",
+    "install-scheduler": "node scripts/scheduler.mjs install",
+    "uninstall-scheduler": "node scripts/scheduler.mjs uninstall"
+  },
+  "keywords": ["kiro", "time-tracking", "cli", "freelance", "billing", "timelog"],
+  "author": "Bach Huynh",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bachvh/kiro-timelog.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": ["darwin", "linux"],
+  "files": ["bin/", "lib/", "scripts/"]
+}
