@@ -10,7 +10,7 @@ const TEST_TIMELOG = join(TEST_DIR, 'timelog');
 process.env.AILOG_DIR = TEST_TIMELOG;
 process.env.CLAUDE_HISTORY_FILE = '/dev/null';
 process.env.CLAUDE_DIR = '/nonexistent';
-process.env.CODEX_DB_PATH = '/dev/null';
+process.env.CODEX_DB_PATH = '/nonexistent/codex.sqlite';
 process.env.GEMINI_DIR = '/nonexistent';
 
 const { loadConfig, detectProject, matchTicket, getOS, detectProjectFromText, isParentProject } = await import('../lib/config.mjs');
@@ -471,10 +471,11 @@ describe('Project Detection from Text', () => {
   });
 
   it('isParentProject identifies generic parent dirs', () => {
-    assert.strictEqual(isParentProject('bach.huynh'), true);
     assert.strictEqual(isParentProject('projects'), true);
     assert.strictEqual(isParentProject('repos'), true);
+    assert.strictEqual(isParentProject('src'), true);
     assert.strictEqual(isParentProject('my-real-app'), false);
+    assert.strictEqual(isParentProject('nhakhoa-mental'), false);
   });
 });
 
