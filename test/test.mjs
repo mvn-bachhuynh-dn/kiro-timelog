@@ -10,10 +10,10 @@ const TEST_TIMELOG = join(TEST_DIR, 'timelog');
 process.env.AILOG_DIR = TEST_TIMELOG;
 process.env.CLAUDE_HISTORY_FILE = '/dev/null';
 process.env.CLAUDE_DIR = '/nonexistent';
-process.env.CODEX_DB_PATH = '/dev/null';
+process.env.CODEX_DB_PATH = '/nonexistent/codex.sqlite';
 process.env.GEMINI_DIR = '/nonexistent';
 
-const { loadConfig, detectProject, matchTicket, getOS } = await import('../lib/config.mjs');
+const { loadConfig, detectProject, matchTicket, getOS, detectProjectFromText, isParentProject } = await import('../lib/config.mjs');
 const { scanSessions } = await import('../scripts/scan.mjs');
 const { calculateActiveTime, loadEvents } = await import('../scripts/report.mjs');
 
@@ -441,6 +441,41 @@ describe('Claude Code Scanner', () => {
     scanSessions(TEST_SESSIONS, TEST_TIMELOG, historyFile);
     const events = readAllEvents().filter(e => e.source === 'claude');
     assert.strictEqual(events[0].ticket, 'BAN-456');
+  });
+});
+
+// ═══════════════════════════════════════
+// 7. Project Detection from Text (4 tests)
+// ═══════════════════════════════════════
+
+describe('Project Detection from Text', () => {
+  it('detectProjectFromText extracts project from file paths', () => {
+    const config = { projectPattern: '/Users/bach.huynh/projects/([^/]+)' };
+    const text = 'fix /Users/bach.huynh/projects/my-app/src/index.ts';
+    const result = detectProjectFromText(text, config, 'bach.huynh');
+    assert.strictEqual(result, 'my-app');
+  });
+
+  it('returns most frequent project when multiple mentioned', () => {
+    const config = { projectPattern: '/Users/bach.huynh/projects/([^/]+)' };
+    const text = '/Users/bach.huynh/projects/app-a/x\n/Users/bach.huynh/projects/app-b/y\n/Users/bach.huynh/projects/app-b/z';
+    const result = detectProjectFromText(text, config, 'fallback');
+    assert.strictEqual(result, 'app-b');
+  });
+
+  it('returns fallback when no pattern matches', () => {
+    const config = { projectPattern: '/Users/bach.huynh/projects/([^/]+)' };
+    const text = 'just a regular prompt with no paths';
+    const result = detectProjectFromText(text, config, 'bach.huynh');
+    assert.strictEqual(result, 'bach.huynh');
+  });
+
+  it('isParentProject identifies generic parent dirs', () => {
+    assert.strictEqual(isParentProject('projects'), true);
+    assert.strictEqual(isParentProject('repos'), true);
+    assert.strictEqual(isParentProject('src'), true);
+    assert.strictEqual(isParentProject('my-real-app'), false);
+    assert.strictEqual(isParentProject('nhakhoa-mental'), false);
   });
 });
 
