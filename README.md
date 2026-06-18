@@ -1,174 +1,121 @@
-# kiro-timelog
+# ailog
 
-Automatic time tracking for [Kiro CLI](https://kiro.dev) sessions. Generates reports for freelance billing and productivity insights.
+[![CI](https://github.com/mvn-bachhuynh-dn/ailog/actions/workflows/ci.yml/badge.svg)](https://github.com/mvn-bachhuynh-dn/ailog/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@steveh204/ailog)](https://www.npmjs.com/package/@steveh204/ailog)
 
-**How it works:** Reads Kiro CLI session data (`~/.kiro/sessions/cli/`), calculates active time between prompts, and generates daily JSONL logs. A background scheduler keeps it up to date automatically.
+Automatic time tracking for AI coding assistants. Passively scans session data from multiple AI CLI tools and reports active working time per project — perfect for freelance billing.
+
+## Supported Tools
+
+| Tool | Data Source | What's Tracked |
+|------|-------------|----------------|
+| Kiro CLI | `~/.kiro/sessions/cli/` | Prompts, credits, cwd |
+| Claude Code | `~/.claude/history.jsonl` + `sessions/` | Prompts, cwd, multi-account |
+| OpenAI Codex | `~/.codex/state_5.sqlite` | Threads, cwd, git branch |
+| Google Gemini | `~/.gemini/tmp/*/chats/` | Prompts, project mapping |
 
 ## Install
 
-### npm (recommended)
-
 ```bash
-npm install -g kiro-timelog
-kirolog install-scheduler   # auto-scan every 5 min
+# npm (recommended)
+npm install -g @steveh204/ailog
+
+# Homebrew (macOS)
+brew tap mvn-bachhuynh-dn/tap && brew install kiro-timelog
+
+# Manual
+git clone https://github.com/mvn-bachhuynh-dn/ailog.git
+cd ailog && bash install.sh
 ```
-
-### Homebrew (macOS)
-
-```bash
-brew tap bachvh/tap
-brew install kiro-timelog
-kirolog install-scheduler
-```
-
-### Manual
-
-```bash
-git clone https://github.com/bachvh/kiro-timelog.git
-cd kiro-timelog
-bash install.sh
-```
-
-### Requirements
-
-- **Node.js >= 18** (only dependency)
-- **macOS** or **Linux**
-- **Kiro CLI** installed and used at least once
 
 ## Usage
 
 ```bash
-kirolog                    # this week's report
-kirolog --month            # this month
-kirolog --timesheet        # project × ticket summary
-kirolog --by-day           # daily breakdown
-kirolog --by-project       # per-project totals
-kirolog --project myapp    # filter single project
-kirolog --from 2026-06-01 --to 2026-06-15  # custom range
-kirolog --json             # JSON output for automation
+ailog                    # This week's report
+ailog --month            # This month
+ailog --by-tool          # Group by AI tool
+ailog --by-project       # Group by project
+ailog --by-day           # Group by day
+ailog --timesheet        # Project × ticket summary
+ailog --from 2026-06-01 --to 2026-06-15  # Custom range
+ailog --project myapp    # Filter by project
+ailog --json             # JSON output
 ```
 
-### Example output
+### Example Output
 
 ```
-Date         Project                      Active   Prompts
+Date         Project               Tool      Active  Prompts
+────────────────────────────────────────────────────────────
+2026-06-17   nhakhoa-mental        kiro      2h 41m       23
+2026-06-17   mvn-claude-mgmt       kiro      1h 54m       33
+2026-06-17   mvn-claude-mgmt       claude       45m       12
+2026-06-17   ai-usage              kiro      1h 42m       29
 ──────────────────────────────────────────────────────────
-2026-06-15   web-app                      5h 35m        31
-2026-06-16   api-server                   2h 18m        14
-2026-06-17   infra                           45m        11
-──────────────────────────────────────────────────────────
-Total: 8h 38m active | 56 prompts | 12 sessions
+Total: 7h 2m active | 97 prompts | 8 sessions
 ```
 
-### Scheduler
+## Auto-Scan (Background)
 
 ```bash
-kirolog install-scheduler    # enable auto-scan (launchd/cron)
-kirolog uninstall-scheduler  # disable
+ailog install-scheduler    # Scan every 5 minutes (launchd on macOS, cron on Linux)
+ailog uninstall-scheduler  # Disable
 ```
 
-- **macOS:** launchd agent (runs every 5 min + on login)
-- **Linux:** cron job (every 5 min)
+Without the scheduler, `ailog` scans on demand each time you run it.
 
 ## Configuration
 
-Optional. Create `~/.kiro/timelog/config.json`:
+Optional config at `~/.ailog/config.json`:
 
 ```json
 {
+  "projectPattern": "/Users/you/projects/([^/]+)",
   "ticketPatterns": ["([A-Z][A-Z0-9]+-\\d+)"],
-  "projectSource": "git-root",
-  "projectPattern": null,
   "breakThreshold": 1800
 }
 ```
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `projectPattern` | Regex on cwd path. Capture group 1 = project name | `null` (uses git root) |
-| `projectSource` | Fallback: `"git-root"` or `"cwd"` | `"git-root"` |
-| `ticketPatterns` | Array of regex to extract ticket IDs from prompts/branches | Jira-style |
-| `breakThreshold` | Seconds. Gaps larger than this = break (excluded from active time) | `1800` (30 min) |
+| Field | Default | Description |
+|-------|---------|-------------|
+| `projectPattern` | null | Regex on cwd → project name (capture group 1) |
+| `ticketPatterns` | JIRA-style | Regex array for ticket detection from prompts/branches |
+| `breakThreshold` | 1800 | Seconds; gaps longer than this are excluded from active time |
+| `projectSource` | "git-root" | Fallback: use git root basename or cwd basename |
 
-### Project detection
+## How It Works
 
-Set `projectPattern` to extract project names from your directory structure:
+1. **Scan** — Reads session files from each AI tool (passive, no hooks needed)
+2. **Emit** — Writes timestamped events to `~/.ailog/YYYY-MM-DD.jsonl`
+3. **Report** — Calculates "active time" between consecutive prompts (excluding breaks)
 
-```json
-// ~/projects/my-app → "my-app"
-{ "projectPattern": "/home/you/projects/([^/]+)" }
+Active time = time between prompts where gap < breakThreshold. Includes AI processing + output review time. Excludes idle breaks.
 
-// ~/code/client/project → "project"
-{ "projectPattern": "/home/you/code/[^/]+/([^/]+)" }
-```
+## Environment Variables
 
-If not set, falls back to git repository name or directory basename.
+| Variable | Override |
+|----------|---------|
+| `AILOG_DIR` | Output directory (default: `~/.ailog/`) |
+| `KIRO_SESSIONS_DIR` | Kiro sessions path |
+| `CLAUDE_HISTORY_FILE` | Claude history.jsonl path |
+| `CLAUDE_DIR` | Claude base directory |
+| `CODEX_DB_PATH` | Codex SQLite path |
+| `GEMINI_DIR` | Gemini base directory |
 
-### Ticket detection
+## Requirements
 
-Tickets are auto-detected from:
-1. Git branch name (e.g. `feature/BAN-123-fix` → `BAN-123`)
-2. Prompt text (e.g. "fix BAN-123 login" → `BAN-123`)
-
-## How active time works
-
-- Time between consecutive events within a session is "active time"
-- Gaps **under** `breakThreshold` → counted as work time
-- Gaps **over** `breakThreshold` → break (excluded)
-- Includes AI processing time + your review time
-- Good metric for billing: represents the session of focused work
-
-## Environment variables
-
-| Variable | Description |
-|----------|-------------|
-| `KIRO_SESSIONS_DIR` | Override Kiro sessions path (default: `~/.kiro/sessions/cli`) |
-| `KIRO_TIMELOG_DIR` | Override timelog output path (default: `~/.kiro/timelog`) |
+- Node.js ≥ 18
+- macOS or Linux
+- `sqlite3` CLI (only needed for Codex adapter)
 
 ## Development
 
 ```bash
-git clone https://github.com/bachvh/kiro-timelog.git
-cd kiro-timelog
-node --test test/test.mjs   # 35 tests
-```
-
-Zero external dependencies. Uses only Node.js built-in modules.
-
-## Troubleshooting
-
-### No data in report
-
-```bash
-# Check Kiro sessions exist
-ls ~/.kiro/sessions/cli/*.json 2>/dev/null | wc -l
-
-# Run scan manually
-node scripts/scan.mjs
-
-# Check timelog files
-ls ~/.kiro/timelog/*.jsonl
-```
-
-### Wrong project name
-
-Check `projectPattern` in `~/.kiro/timelog/config.json` matches your actual directories:
-```bash
-# See what cwd Kiro recorded
-cat ~/.kiro/sessions/cli/<uuid>.json | grep cwd
-```
-
-### Scheduler not running
-
-```bash
-# Check status
-npx kiro-timelog install-scheduler status
-
-# macOS: check launchd
-launchctl list | grep kiro
-
-# Linux: check cron
-crontab -l | grep kiro
+git clone https://github.com/mvn-bachhuynh-dn/ailog.git
+cd ailog
+node --test test/test.mjs    # 40 tests
+node scripts/scan.mjs        # Manual scan
+node scripts/report.mjs      # Direct report
 ```
 
 ## License
